@@ -27,7 +27,7 @@ const Header = () => {
         <Link href="/" className="flex items-center gap-1 h-full">
           <Image src="/logo.svg" alt="dodam dodam logo" width={42} height={32} />
           <h1 className="hidden sm:block self-end mb-2 text-brand-primary font-bold">
-            Design System
+            B1ND Docs
           </h1>
         </Link>
 

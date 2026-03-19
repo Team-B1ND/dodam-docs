@@ -1,0 +1,53 @@
+---
+title: "개요"
+order: 0
+section: "aid"
+---
+
+# App in Dodam (AID)
+
+`@b1nd/aid-kit`은 Dodam 네이티브 앱과 웹뷰 간의 브릿지 통신을 추상화한 프레임워크입니다.
+
+## 핵심 개념
+
+### WebView Bridge
+
+네이티브 앱(React Native)과 웹 앱(React) 사이에서 `postMessage`를 통해 메시지를 주고받습니다. AID는 이 저수준 통신을 타입 안전한 API로 감싸줍니다.
+
+```
+Web App (React)          Native App (React Native)
+┌──────────────┐         ┌────────────────────────┐
+│ BridgeProvider│◄───────►│ useBridgeCore (WebView)│
+│ send()       │postMsg  │ BridgeCore.receive()   │
+│ subscribe()  │         │ BridgeCore.send()      │
+└──────────────┘         └────────────────────────┘
+```
+
+### 패키지 구조
+
+| 엔트리포인트 | 대상 | 설명 |
+|-------------|------|------|
+| `@b1nd/aid-kit/bridge-kit/web` | 웹 앱 | BridgeProvider, useBridgeProvider, useBridgeResponse |
+| `@b1nd/aid-kit/bridge-kit/app` | 네이티브 앱 | useBridgeCore, BridgeCore |
+| `@b1nd/aid-kit/navigation` | 네이티브 앱 | 웹뷰 내부 라우팅 |
+| `@b1nd/aid-kit/safe-area-provider` | 공통 | Safe area insets |
+| `@b1nd/aid-kit/app-state` | 공통 | 앱 상태 동기화 |
+
+## 지원 액션
+
+AID가 지원하는 네이티브 액션 목록입니다.
+
+| Action | 설명 |
+|--------|------|
+| `CAMERA_CAPTURE` | 카메라로 사진 촬영 |
+| `GPS_GET` | 현재 위치 정보 요청 |
+| `OAUTH_GET_TOKEN` | OAuth 토큰 획득 |
+| `FILE_SELECT` | 파일 선택 |
+| `FILE_SAVE` | 파일 저장 |
+| `NFC_WRITE` | NFC 태그 쓰기 |
+| `NFC_READ` | NFC 태그 읽기 |
+| `QR_SCAN` | QR 코드 스캔 |
+| `NAVIGATION_POP` | 웹뷰 스택 뒤로 가기 |
+| `HAPTIC` | 햅틱 피드백 |
+| `SYNC` | 앱-웹 상태 동기화 |
+| `ACK` | 메시지 응답 확인 |

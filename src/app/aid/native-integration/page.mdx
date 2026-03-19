@@ -1,0 +1,114 @@
+---
+title: "네이티브 통합"
+order: 3
+section: "aid"
+---
+
+# 네이티브 앱 통합
+
+`@b1nd/aid-kit/bridge-kit/app` 패키지를 사용합니다. React Native 환경에서만 동작합니다.
+
+## useBridgeCore
+
+WebView와 브릿지 통신을 처리하는 핵심 훅입니다.
+
+```tsx
+import WebView from "react-native-webview";
+import { useBridgeCore } from "@b1nd/aid-kit/bridge-kit/app";
+
+export default function DodamWebView() {
+  const { webViewProps } = useBridgeCore();
+
+  return (
+    <WebView
+      source={{ uri: "https://dodam.b1nd.com" }}
+      {...webViewProps}
+    />
+  );
+}
+```
+
+`webViewProps`는 다음을 포함합니다:
+- `ref` — WebView 인스턴스 참조 (내부 메시지 전송에 사용)
+- `onMessage` — 웹에서 오는 메시지 핸들러
+
+## BridgeCore
+
+`useBridgeCore`가 내부적으로 사용하는 클래스입니다. 직접 사용이 필요한 경우 import할 수 있습니다.
+
+```ts
+import { core } from "@b1nd/aid-kit/bridge-kit/app";
+
+// 특정 액션에 대한 핸들러 등록
+core.mount("GPS_GET", async () => {
+  const location = await getCurrentLocation();
+  return { latitude: location.lat, longitude: location.lng };
+});
+```
+
+## 액션 핸들러 등록
+
+`core.mount`를 사용해 네이티브 측 액션 핸들러를 등록합니다. 웹에서 해당 액션을 `send`하면 이 핸들러가 실행되고 결과가 웹으로 반환됩니다.
+
+```tsx
+import { useEffect } from "react";
+import { core } from "@b1nd/aid-kit/bridge-kit/app";
+import { Camera } from "expo-camera";
+
+export default function DodamWebView() {
+  const { webViewProps } = useBridgeCore();
+
+  useEffect(() => {
+    // 카메라 촬영 핸들러
+    const unmount = core.mount("CAMERA_CAPTURE", async () => {
+      const photo = await Camera.takePictureAsync();
+      return { uri: photo.uri };
+    });
+
+    // GPS 위치 핸들러
+    const unmountGps = core.mount("GPS_GET", async () => {
+      const location = await Location.getCurrentPositionAsync();
+      return {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+    });
+
+    return () => {
+      unmount();
+      unmountGps();
+    };
+  }, []);
+
+  return (
+    <WebView
+      source={{ uri: "https://dodam.b1nd.com" }}
+      {...webViewProps}
+    />
+  );
+}
+```
+
+## Push 이벤트
+
+네이티브에서 웹으로 먼저 이벤트를 보내고 싶을 때는 `startPush`를 사용합니다.
+
+```ts
+// useBridgeCore 내부에서 자동으로 처리됨
+// 직접 사용이 필요한 경우:
+core.startPush((action, data) => {
+  // 웹으로 데이터 전송 로직
+});
+```
+
+## 메시지 흐름
+
+```
+Web: send("GPS_GET")
+  → postMessage(JSON.stringify(request))
+  → onMessage 핸들러 (useBridgeCore)
+  → BridgeCore.receive()
+  → core.mount("GPS_GET") 핸들러 실행
+  → BridgeCore.send() (webView.injectJavaScript)
+  → Web: subscribe("GPS_GET") 핸들러 호출
+```

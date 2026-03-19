@@ -1,0 +1,171 @@
+---
+title: "액션 레퍼런스"
+order: 4
+section: "aid"
+---
+
+# 액션 레퍼런스
+
+AID에서 지원하는 모든 액션의 상세 레퍼런스입니다.
+
+## CAMERA_CAPTURE
+
+카메라로 사진을 촬영합니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("CAMERA_CAPTURE");
+```
+
+**네이티브 → 웹 응답:**
+```ts
+{ uri: string } // 촬영된 이미지 URI
+```
+
+---
+
+## GPS_GET
+
+현재 기기의 GPS 위치 정보를 요청합니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("GPS_GET");
+```
+
+**네이티브 → 웹 응답:**
+```ts
+{ latitude: number; longitude: number }
+```
+
+---
+
+## OAUTH_GET_TOKEN
+
+네이티브 앱에 저장된 OAuth 토큰을 요청합니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("OAUTH_GET_TOKEN");
+```
+
+**네이티브 → 웹 응답:**
+```ts
+{ token: string }
+```
+
+---
+
+## FILE_SELECT
+
+파일 선택기를 열어 파일을 선택합니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("FILE_SELECT");
+```
+
+**네이티브 → 웹 응답:**
+```ts
+{ uri: string; name: string; type: string }
+```
+
+---
+
+## FILE_SAVE
+
+파일을 기기에 저장합니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("FILE_SAVE", { uri: string; filename: string });
+```
+
+**네이티브 → 웹 응답:**
+```ts
+{ success: boolean }
+```
+
+---
+
+## NFC_READ
+
+NFC 태그를 읽습니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("NFC_READ");
+```
+
+**네이티브 → 웹 응답:**
+```ts
+{ data: string }
+```
+
+---
+
+## NFC_WRITE
+
+NFC 태그에 데이터를 씁니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("NFC_WRITE", { data: string });
+```
+
+**네이티브 → 웹 응답:**
+```ts
+{ success: boolean }
+```
+
+---
+
+## QR_SCAN
+
+QR 코드를 스캔합니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("QR_SCAN");
+```
+
+**네이티브 → 웹 응답:**
+```ts
+{ data: string }
+```
+
+---
+
+## NAVIGATION_POP
+
+웹뷰 네비게이션 스택을 하나 뒤로 이동합니다.
+
+**웹 → 네이티브 요청:**
+```ts
+send("NAVIGATION_POP");
+```
+
+---
+
+## HAPTIC
+
+햅틱 피드백을 트리거합니다.
+
+**웹 → 네이티브 요청:**
+```ts
+import type { HapticPayload } from "@b1nd/aid-kit/bridge-kit/web";
+
+send("HAPTIC", { type: "light" }); // "light" | "medium" | "heavy"
+```
+
+---
+
+## SYNC
+
+앱 상태를 웹뷰와 동기화합니다. 주로 네이티브 → 웹 방향으로 사용됩니다.
+
+---
+
+## ACK
+
+메시지 수신 확인(Acknowledgment)에 사용됩니다. 내부적으로 자동 처리됩니다.

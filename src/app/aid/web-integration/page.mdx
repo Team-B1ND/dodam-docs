@@ -1,0 +1,120 @@
+---
+title: "웹 통합"
+order: 2
+section: "aid"
+---
+
+# 웹 앱 통합
+
+`@b1nd/aid-kit/bridge-kit/web` 패키지를 사용합니다.
+
+## BridgeProvider
+
+앱 루트를 감싸는 Context Provider입니다. 모든 브릿지 훅은 이 Provider 안에서만 사용할 수 있습니다.
+
+```tsx
+import { BridgeProvider } from "@b1nd/aid-kit/bridge-kit/web";
+
+export default function Root() {
+  return (
+    <BridgeProvider>
+      <App />
+    </BridgeProvider>
+  );
+}
+```
+
+## useBridgeProvider
+
+`BridgeProvider`의 context에 접근하는 훅입니다. `send`와 `subscribe` 두 가지 메서드를 제공합니다.
+
+```ts
+const { send, subscribe } = useBridgeProvider();
+```
+
+### send(type, payload?)
+
+네이티브 앱에 액션 요청을 보냅니다.
+
+```tsx
+import { useBridgeProvider } from "@b1nd/aid-kit/bridge-kit/web";
+
+function CameraButton() {
+  const { send } = useBridgeProvider();
+
+  return (
+    <button onClick={() => send("CAMERA_CAPTURE")}>
+      사진 촬영
+    </button>
+  );
+}
+```
+
+페이로드를 함께 보낼 수도 있습니다.
+
+```tsx
+send("NFC_WRITE", { data: "Hello NFC" });
+```
+
+### subscribe(type, handler)
+
+네이티브 앱으로부터 응답을 구독합니다. cleanup 함수를 반환합니다.
+
+```tsx
+useEffect(() => {
+  const unsubscribe = subscribe("GPS_GET", async (data) => {
+    setLocation(data as { latitude: number; longitude: number });
+    return {};
+  });
+  return unsubscribe;
+}, [subscribe]);
+```
+
+## useBridgeResponse
+
+`subscribe`의 React hook 버전입니다. `useEffect`를 내부에서 처리해주어 더 간편합니다.
+
+```tsx
+import { useBridgeProvider, useBridgeResponse } from "@b1nd/aid-kit/bridge-kit/web";
+
+function QRScanner() {
+  const { send } = useBridgeProvider();
+
+  useBridgeResponse("QR_SCAN", async (data) => {
+    console.log("QR 코드 결과:", data);
+    return {};
+  });
+
+  return (
+    <button onClick={() => send("QR_SCAN")}>
+      QR 스캔
+    </button>
+  );
+}
+```
+
+## 타입 안전성
+
+`send`와 `subscribe`의 `type` 파라미터는 `Action` 유니온 타입으로 제한됩니다.
+
+```ts
+type Action =
+  | "CAMERA_CAPTURE"
+  | "GPS_GET"
+  | "OAUTH_GET_TOKEN"
+  | "FILE_SELECT"
+  | "FILE_SAVE"
+  | "NFC_WRITE"
+  | "NFC_READ"
+  | "QR_SCAN"
+  | "NAVIGATION_POP"
+  | "HAPTIC"
+  | "SYNC"
+  | "ACK";
+```
+
+잘못된 액션 이름을 사용하면 TypeScript 컴파일 에러가 발생합니다.
+
+## 브라우저 환경 대응
+
+`BridgeProvider`는 `window.ReactNativeWebView`가 없는 일반 브라우저에서도 에러 없이 동작합니다. `send` 호출은 무시되고 `subscribe`는 응답을 받지 않습니다. 개발 중 브라우저에서 테스트할 때 유용합니다.

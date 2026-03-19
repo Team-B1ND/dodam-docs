@@ -7,10 +7,11 @@ import { LoadingBar } from "@cher1shrxd/loading";
 import { ThemeSetter, DdsRegistry } from "@b1nd/dodam-design-system/next";
 import { OverlayProvider } from "@b1nd/dodam-design-system/components";
 import { colors } from "@b1nd/dodam-design-system/colors";
+import { getNav } from "@/lib/nav";
 
 export const metadata: Metadata = {
-  title: "DDS docs",
-  description: "도담도담 디자인 시스템 DDS 문서",
+  title: "B1ND Docs",
+  description: "B1ND 팀 문서 - DDS, App in Dodam, Team Guides",
 };
 
 export default function RootLayout({
@@ -18,6 +19,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nav = getNav();
+
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
@@ -28,8 +31,8 @@ export default function RootLayout({
           <LoadingBar color={colors.brand.primary} />
           <Header />
           <div className="w-full max-w-360 mx-auto px-4 md:px-2 flex items-start pt-14">
-            <Sidebar />
-            <main className="flex-1 md:pl-50 pt-8 md:pt-16 min-w-0">
+            <Sidebar nav={nav} />
+            <main className="flex-1 md:pl-56 pt-8 md:pt-16 min-w-0">
               <div className="min-h-body">
                 <DdsRegistry>{children}</DdsRegistry>
               </div>

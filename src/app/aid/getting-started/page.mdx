@@ -1,0 +1,76 @@
+---
+title: "빠른 시작"
+order: 1
+section: "aid"
+---
+
+# 빠른 시작
+
+## 설치
+
+```bash
+pnpm add @b1nd/aid-kit
+```
+
+## 웹 앱 설정
+
+웹 앱 루트에 `BridgeProvider`를 감싸줍니다.
+
+```tsx
+import { BridgeProvider } from "@b1nd/aid-kit/bridge-kit/web";
+
+export default function App() {
+  return (
+    <BridgeProvider>
+      <YourApp />
+    </BridgeProvider>
+  );
+}
+```
+
+`BridgeProvider`는 내부적으로 `window.ReactNativeWebView.postMessage`를 통해 네이티브와 통신합니다. 일반 브라우저 환경에서는 gracefully 무시됩니다.
+
+## 네이티브 앱 설정
+
+React Native 앱에서 `WebView`와 함께 `useBridgeCore`를 사용합니다.
+
+```tsx
+import WebView from "react-native-webview";
+import { useBridgeCore } from "@b1nd/aid-kit/bridge-kit/app";
+
+export default function WebViewScreen() {
+  const { webViewProps } = useBridgeCore();
+
+  return (
+    <WebView
+      source={{ uri: "https://your-web-app.com" }}
+      {...webViewProps}
+    />
+  );
+}
+```
+
+`webViewProps`에는 `ref`와 `onMessage` 핸들러가 포함되어 있어 WebView에 직접 spread하면 됩니다.
+
+## 첫 번째 브릿지 호출
+
+웹 앱에서 GPS 위치를 요청하는 예시입니다.
+
+```tsx
+import { useBridgeProvider, useBridgeResponse } from "@b1nd/aid-kit/bridge-kit/web";
+
+function LocationButton() {
+  const { send } = useBridgeProvider();
+
+  useBridgeResponse("GPS_GET", async (data) => {
+    console.log("위치:", data); // { latitude, longitude }
+    return {};
+  });
+
+  return (
+    <button onClick={() => send("GPS_GET")}>
+      현재 위치 가져오기
+    </button>
+  );
+}
+```
