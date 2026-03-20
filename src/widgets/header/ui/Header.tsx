@@ -14,8 +14,8 @@ const Header = () => {
   const toggleSidebar = useSidebarStore((state) => state.toggle);
 
   return (
-    <header className="fixed top-0 z-50 w-full h-14 bg-background-default">
-      <div className="flex items-center gap-1 w-full max-w-360 h-full mx-auto px-2">
+    <header className="fixed top-0 z-50 w-full h-14 bg-background-default border-b border-border-normal">
+      <div className="flex items-center gap-1 w-full h-full px-3">
         <button
           type="button"
           onClick={toggleSidebar}

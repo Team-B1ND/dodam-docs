@@ -30,15 +30,15 @@ export default function RootLayout({
         <OverlayProvider>
           <LoadingBar color={colors.brand.primary} />
           <Header />
-          <div className="w-full max-w-360 mx-auto px-4 md:px-2 flex items-start pt-14">
-            <Sidebar nav={nav} />
-            <main className="flex-1 md:pl-56 pt-8 md:pt-16 min-w-0">
+          <Sidebar nav={nav} />
+          <main className="pt-14 md:ml-56 min-w-0">
+            <div className="max-w-4xl mx-auto px-6 md:px-12 pt-8 md:pt-12">
               <div className="min-h-body">
                 <DdsRegistry>{children}</DdsRegistry>
               </div>
               <Footer />
-            </main>
-          </div>
+            </div>
+          </main>
         </OverlayProvider>
       </body>
     </html>

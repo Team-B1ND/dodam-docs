@@ -55,8 +55,9 @@ const Sidebar = ({ nav }: SidebarProps) => {
         className={`
           fixed left-0 top-0 z-40 w-56 h-dvh pt-16
           overflow-y-auto bg-background-default
+          border-r border-border-normal
           transition-transform duration-300 ease-in-out
-          md:left-auto md:translate-x-0
+          md:translate-x-0
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}>
         <div className="flex items-center justify-between px-4 py-2 md:hidden">
@@ -70,7 +71,7 @@ const Sidebar = ({ nav }: SidebarProps) => {
           </button>
         </div>
 
-        <div className="pb-8 px-4 md:px-0">
+        <div className="pb-8 px-4 md:px-5">
           {nav.filter(Boolean).map((section, i) => {
             const groups = groupBySubsection(section.items ?? []);
             return (
