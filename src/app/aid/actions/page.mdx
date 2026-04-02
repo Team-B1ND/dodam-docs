@@ -14,7 +14,7 @@ AID에서 지원하는 모든 액션의 상세 레퍼런스입니다.
 
 **웹 → 네이티브 요청:**
 ```ts
-send("CAMERA_CAPTURE");
+send(Actions.CAMERA_CAPTURE);
 ```
 
 **네이티브 → 웹 응답:**
@@ -30,12 +30,37 @@ send("CAMERA_CAPTURE");
 
 **웹 → 네이티브 요청:**
 ```ts
-send("GPS_GET");
+send(Actions.GPS_GET, { accuracy: "high" });
+// accuracy: "low" | "balanced" | "high"
 ```
 
 **네이티브 → 웹 응답:**
 ```ts
-{ latitude: number; longitude: number }
+interface GPSGetResponse {
+  coords: {
+    latitude: number;
+    longitude: number;
+    altitude: number | null;
+    accuracy: number | null;
+    altitudeAccuracy: number | null;
+    heading: number | null;
+    speed: number | null;
+  };
+  timestamp: number;
+}
+```
+
+**사용 예시:**
+```tsx
+const { send } = useBridgeProvider();
+
+useBridgeResponse(Actions.GPS_GET, async (data) => {
+  const { coords } = data as GPSGetResponse;
+  console.log(coords.latitude, coords.longitude);
+  return {};
+});
+
+send(Actions.GPS_GET, { accuracy: "high" });
 ```
 
 ---
@@ -46,12 +71,23 @@ send("GPS_GET");
 
 **웹 → 네이티브 요청:**
 ```ts
-send("OAUTH_GET_TOKEN");
+send(Actions.OAUTH_GET_TOKEN);
 ```
 
 **네이티브 → 웹 응답:**
 ```ts
 { token: string }
+```
+
+**사용 예시:**
+```tsx
+useBridgeResponse(Actions.OAUTH_GET_TOKEN, async (data) => {
+  const { token } = data as { token: string };
+  setAuthToken(token);
+  return {};
+});
+
+send(Actions.OAUTH_GET_TOKEN);
 ```
 
 ---
@@ -62,7 +98,7 @@ send("OAUTH_GET_TOKEN");
 
 **웹 → 네이티브 요청:**
 ```ts
-send("FILE_SELECT");
+send(Actions.FILE_SELECT);
 ```
 
 **네이티브 → 웹 응답:**
@@ -78,7 +114,7 @@ send("FILE_SELECT");
 
 **웹 → 네이티브 요청:**
 ```ts
-send("FILE_SAVE", { uri: string; filename: string });
+send(Actions.FILE_SAVE, { uri: string, filename: string });
 ```
 
 **네이티브 → 웹 응답:**
@@ -94,7 +130,7 @@ NFC 태그를 읽습니다.
 
 **웹 → 네이티브 요청:**
 ```ts
-send("NFC_READ");
+send(Actions.NFC_READ);
 ```
 
 **네이티브 → 웹 응답:**
@@ -110,7 +146,7 @@ NFC 태그에 데이터를 씁니다.
 
 **웹 → 네이티브 요청:**
 ```ts
-send("NFC_WRITE", { data: string });
+send(Actions.NFC_WRITE, { data: string });
 ```
 
 **네이티브 → 웹 응답:**
@@ -126,23 +162,34 @@ QR 코드를 스캔합니다.
 
 **웹 → 네이티브 요청:**
 ```ts
-send("QR_SCAN");
+send(Actions.QR_SCAN);
 ```
 
 **네이티브 → 웹 응답:**
 ```ts
-{ data: string }
+{ text: string }
+```
+
+**사용 예시:**
+```tsx
+useBridgeResponse(Actions.QR_SCAN, async (data) => {
+  const { text } = data as { text: string };
+  handleQrResult(text);
+  return {};
+});
+
+send(Actions.QR_SCAN);
 ```
 
 ---
 
 ## NAVIGATION_POP
 
-웹뷰 네비게이션 스택을 하나 뒤로 이동합니다.
+웹뷰 네비게이션 스택을 하나 뒤로 이동합니다. (네이티브 앱의 WebView 스택을 닫습니다)
 
 **웹 → 네이티브 요청:**
 ```ts
-send("NAVIGATION_POP");
+send(Actions.NAVIGATION_POP);
 ```
 
 ---
@@ -153,9 +200,26 @@ send("NAVIGATION_POP");
 
 **웹 → 네이티브 요청:**
 ```ts
-import type { HapticPayload } from "@b1nd/aid-kit/bridge-kit/web";
+send(Actions.HAPTIC, { style: "success" });
+```
 
-send("HAPTIC", { type: "light" }); // "light" | "medium" | "heavy"
+**지원 스타일:**
+```ts
+type ImpactFeedbackStyle = "light" | "medium" | "heavy" | "soft" | "rigid";
+type NotificationFeedbackType = "success" | "warning" | "error";
+type HapticStyle = ImpactFeedbackStyle | NotificationFeedbackType | "selection";
+```
+
+**사용 예시:**
+```ts
+const { send } = useBridgeProvider();
+
+send(Actions.HAPTIC, { style: "success" });   // 성공
+send(Actions.HAPTIC, { style: "warning" });   // 경고
+send(Actions.HAPTIC, { style: "error" });     // 오류
+send(Actions.HAPTIC, { style: "light" });     // 약한 충격
+send(Actions.HAPTIC, { style: "heavy" });     // 강한 충격
+send(Actions.HAPTIC, { style: "selection" }); // 선택
 ```
 
 ---
@@ -169,3 +233,18 @@ send("HAPTIC", { type: "light" }); // "light" | "medium" | "heavy"
 ## ACK
 
 메시지 수신 확인(Acknowledgment)에 사용됩니다. 내부적으로 자동 처리됩니다.
+
+---
+
+## 에러 타입
+
+브릿지 통신 중 발생할 수 있는 에러 타입입니다.
+
+```ts
+type BridgeError =
+  | "TIMEOUT"
+  | "PERMISSION_DENIED"
+  | "NOT_SUPPORTED"
+  | "CANCELLED"
+  | "UNKNOWN";
+```

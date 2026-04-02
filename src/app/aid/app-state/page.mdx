@@ -1,0 +1,84 @@
+---
+title: "전역 상태 관리"
+order: 6
+section: "aid"
+---
+
+# App State
+
+`localStorage`에 자동으로 동기화되는 전역 상태 관리 모듈입니다.
+navigation 모듈이 내부적으로 사용하며, 앱 재실행 시 상태가 복원됩니다.
+
+## 빠른 시작
+
+```tsx
+// App.tsx
+import { AppStateProvider } from "@b1nd/aid-kit/app-state";
+
+export const App = () => (
+  <AppStateProvider>
+    <YourApp />
+  </AppStateProvider>
+);
+```
+
+```tsx
+// 어떤 컴포넌트에서든 사용
+import { useAppState } from "@b1nd/aid-kit/app-state";
+
+const ThemeToggle = () => {
+  const [theme, setTheme] = useAppState("light", "theme");
+
+  return (
+    <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+      현재 테마: {theme}
+    </button>
+  );
+};
+```
+
+## API 레퍼런스
+
+### AppStateProvider
+
+앱 최상단에 배치합니다. `navigation` 모듈 사용 시 필수입니다.
+
+```tsx
+<AppStateProvider>
+  <App />
+</AppStateProvider>
+```
+
+- 마운트 시 `localStorage`에서 상태를 복원합니다.
+- 상태 변경 시 100ms 디바운스로 `localStorage`에 저장합니다.
+
+### useAppState\<T\>(initialValue, key)
+
+전역 상태를 읽고 쓰는 훅입니다. `React.useState`와 동일한 인터페이스를 갖습니다.
+
+```ts
+const [value, setValue] = useAppState(초기값, "키이름");
+```
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `initialValue` | `T` | 초기값 (최초 1회만 적용) |
+| `key` | `string` | 고유 식별자 (앱 전체에서 중복 불가) |
+
+> **주의:** `key`가 중복되면 동일한 상태를 공유합니다. 앱 전체에서 유일한 키를 사용하세요.
+
+## 사용 예시
+
+```ts
+// 문자열
+const [username, setUsername] = useAppState("", "username");
+
+// 숫자
+const [count, setCount] = useAppState(0, "counter");
+
+// 배열/객체
+const [items, setItems] = useAppState<string[]>([], "items");
+
+// 함수형 업데이트
+setCount(prev => prev + 1);
+```

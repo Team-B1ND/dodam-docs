@@ -1,0 +1,182 @@
+---
+title: "내비게이션"
+order: 5
+section: "aid"
+---
+
+# Navigation
+
+미니앱 내부의 스택/탭 라우터입니다.
+framer-motion 기반 슬라이드 애니메이션과 스와이프 제스처를 지원합니다.
+`AppStateProvider`와 연동하여 내비게이션 상태를 `localStorage`에 유지합니다.
+
+## 빠른 시작
+
+```tsx
+// App.tsx
+import { RouteProvider, Router } from "@b1nd/aid-kit/navigation";
+import { AppStateProvider } from "@b1nd/aid-kit/app-state";
+
+const routes = {
+  stacks: [
+    { path: "/detail/:id", element: DetailPage },
+    { path: "/profile", element: ProfilePage },
+  ],
+  tabs: [
+    { path: "/", index: true, element: HomePage },
+    { path: "/settings", element: SettingsPage },
+  ],
+};
+
+export const App = () => (
+  <AppStateProvider>
+    <RouteProvider routes={routes}>
+      <Router routes={routes} />
+    </RouteProvider>
+  </AppStateProvider>
+);
+```
+
+## 라우트 타입
+
+### 스택 라우트 (`stacks`)
+
+- 현재 화면 위에 슬라이드 인 애니메이션으로 쌓입니다.
+- `stack.push()` / `stack.pop()`으로 이동합니다.
+- 왼쪽 엣지 스와이프로 닫기를 지원합니다.
+
+### 탭 라우트 (`tabs`)
+
+- 애니메이션 없이 즉시 전환됩니다.
+- `tab.move()`로 이동합니다.
+- `index: true`인 탭이 초기 화면입니다.
+
+## API 레퍼런스
+
+### RouteProvider
+
+라우팅 컨텍스트를 제공합니다. `AppStateProvider` 내부에 배치해야 합니다.
+
+```tsx
+<RouteProvider routes={routes}>
+  {/* 자식 */}
+</RouteProvider>
+```
+
+### Router
+
+현재 라우트를 렌더링하고 애니메이션을 처리합니다.
+
+```tsx
+<Router routes={routes} />
+```
+
+### useRouter()
+
+내비게이션을 제어하는 핵심 훅입니다.
+
+```ts
+const { tab, stack } = useRouter();
+
+// 탭 이동
+tab.move("/settings");
+tab.move("/settings", { someState: true });
+
+// 현재 탭 확인
+console.log(tab.current); // "/settings"
+
+// 스택 푸시
+stack.push("/detail/123");
+stack.push("/detail/123", { from: "home" });
+
+// 스택 팝 (뒤로가기)
+stack.pop();
+stack.pop("/"); // 특정 경로까지 pop
+
+// 현재 스택 확인
+console.log(stack.current); // [{ path, state }, ...]
+```
+
+| 반환값 | 타입 | 설명 |
+|---|---|---|
+| `tab.current` | `string` | 현재 탭 경로 |
+| `tab.move(path, state?)` | `void` | 탭 이동 |
+| `stack.current` | `StackEntry[]` | 현재 스택 배열 |
+| `stack.push(path, state?)` | `void` | 스택에 화면 추가 |
+| `stack.pop(path?)` | `void` | 스택에서 화면 제거 |
+
+## 라우트 정의 타입
+
+### RouteNode
+
+```ts
+interface RouteNode {
+  path: string;             // 경로 (동적 파라미터: ":id")
+  index?: boolean;          // 기본 탭 여부
+  element: (props: RouteProps) => JSX.Element;
+  children?: RouteNode[];   // 중첩 라우트
+}
+```
+
+### RouteProps
+
+```ts
+interface RouteProps<S = RouteState> {
+  outlet?: ReactNode;       // 자식 라우트 렌더링 위치
+  params?: RouteParams;     // URL 파라미터 (:id → params.id)
+  state?: S;                // push/move 시 전달한 state
+}
+```
+
+## 사용 예시
+
+### 파라미터 사용
+
+```tsx
+// 라우트 정의
+{ path: "/user/:userId/post/:postId", element: PostPage }
+
+// 컴포넌트에서 파라미터 접근
+const PostPage = ({ params }: RouteProps) => {
+  const { userId, postId } = params!;
+  return <div>{userId} / {postId}</div>;
+};
+```
+
+### state 전달
+
+```tsx
+// 푸시 시 state 전달
+stack.push("/detail/42", { from: "home", title: "공지사항" });
+
+// 상세 페이지에서 state 접근
+const DetailPage = ({ params, state }: RouteProps<{ from: string; title: string }>) => {
+  return <div>{state?.title}</div>;
+};
+```
+
+### 중첩 라우트
+
+```tsx
+const routes = {
+  tabs: [
+    {
+      path: "/feed",
+      element: FeedLayout,
+      children: [
+        { path: "/feed/popular", index: true, element: PopularFeed },
+        { path: "/feed/recent", element: RecentFeed },
+      ],
+    },
+  ],
+  stacks: [],
+};
+
+// FeedLayout.tsx
+const FeedLayout = ({ outlet }: RouteProps) => (
+  <div>
+    <TabBar />
+    {outlet}   {/* 자식 라우트가 여기 렌더링됨 */}
+  </div>
+);
+```

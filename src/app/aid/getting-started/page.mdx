@@ -12,6 +12,12 @@ section: "aid"
 pnpm add @b1nd/aid-kit
 ```
 
+### 피어 의존성
+
+```bash
+pnpm add styled-components framer-motion zod
+```
+
 ## 웹 앱 설정
 
 웹 앱 루트에 `BridgeProvider`를 감싸줍니다.
@@ -57,20 +63,55 @@ export default function WebViewScreen() {
 웹 앱에서 GPS 위치를 요청하는 예시입니다.
 
 ```tsx
-import { useBridgeProvider, useBridgeResponse } from "@b1nd/aid-kit/bridge-kit/web";
+import { Actions, useBridgeProvider, useBridgeResponse } from "@b1nd/aid-kit/bridge-kit/web";
 
 function LocationButton() {
   const { send } = useBridgeProvider();
 
-  useBridgeResponse("GPS_GET", async (data) => {
+  useBridgeResponse(Actions.GPS_GET, async (data) => {
     console.log("위치:", data); // { latitude, longitude }
     return {};
   });
 
   return (
-    <button onClick={() => send("GPS_GET")}>
+    <button onClick={() => send(Actions.GPS_GET, { accuracy: "high" })}>
       현재 위치 가져오기
     </button>
   );
 }
 ```
+
+## 전체 Provider 구성
+
+Provider 배치 순서가 중요합니다. 아래 순서를 따르세요.
+
+```tsx
+import { BridgeProvider } from "@b1nd/aid-kit/bridge-kit/web";
+import { SafeAreaProvider } from "@b1nd/aid-kit/safe-area-provider";
+import { AppStateProvider } from "@b1nd/aid-kit/app-state";
+import { RouteProvider, Router } from "@b1nd/aid-kit/navigation";
+
+const routes = {
+  stacks: [
+    { path: "/detail/:id", element: DetailPage },
+  ],
+  tabs: [
+    { path: "/", index: true, element: HomePage },
+    { path: "/settings", element: SettingsPage },
+  ],
+};
+
+export const App = () => (
+  <BridgeProvider>
+    <SafeAreaProvider>
+      <AppStateProvider>
+        <RouteProvider routes={routes}>
+          <Router routes={routes} />
+        </RouteProvider>
+      </AppStateProvider>
+    </SafeAreaProvider>
+  </BridgeProvider>
+);
+```
+
+> **Provider 순서:** `BridgeProvider` → `SafeAreaProvider` → `AppStateProvider` → `RouteProvider`
