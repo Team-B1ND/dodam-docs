@@ -1,6 +1,6 @@
 ---
 title: "내비게이션"
-order: 5
+order: 4
 section: "aid"
 ---
 
@@ -105,9 +105,7 @@ console.log(stack.current); // [{ path, state }, ...]
 | `stack.push(path, state?)` | `void` | 스택에 화면 추가 |
 | `stack.pop(path?)` | `void` | 스택에서 화면 제거 |
 
-## 라우트 정의 타입
-
-### RouteNode
+### RouteNode — 라우트 정의
 
 ```ts
 interface RouteNode {
@@ -118,7 +116,7 @@ interface RouteNode {
 }
 ```
 
-### RouteProps
+### RouteProps — 라우트 컴포넌트 Props
 
 ```ts
 interface RouteProps<S = RouteState> {
@@ -179,4 +177,26 @@ const FeedLayout = ({ outlet }: RouteProps) => (
     {outlet}   {/* 자식 라우트가 여기 렌더링됨 */}
   </div>
 );
+```
+
+## 내비게이션 타입
+
+```ts
+interface RouteNode {
+  path: string;
+  index?: boolean;
+  element: (props: RouteProps) => JSX.Element;
+  children?: RouteNode[];
+}
+
+interface RouteProps<S = RouteState> {
+  outlet?: ReactNode;
+  params?: Record<string, string>;
+  state?: S;
+}
+
+interface Routes {
+  stacks: RouteNode[];
+  tabs: RouteNode[];
+}
 ```
