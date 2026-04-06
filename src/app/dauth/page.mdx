@@ -1,0 +1,566 @@
+---
+title: "DAuth 연동 가이드"
+order: 0
+section: "dauth"
+---
+
+# DAuth 연동 가이드
+
+DAuth는 도담도담(dodam-api.b1nd.com)의 OAuth 2.0 인증 서비스입니다.
+외부 서비스가 도담도담 사용자 인증을 위임받아 처리할 수 있도록 **Authorization Code Flow + PKCE**를 지원합니다.
+
+---
+
+## 목차
+
+1. [사전 준비 — 서비스 등록](#1-사전-준비--서비스-등록)
+2. [인증 흐름 개요](#2-인증-흐름-개요)
+3. [Step 1: 인가 요청 (Authorization Request)](#3-step-1-인가-요청)
+4. [Step 2: 사용자 동의 및 인가 코드 수신](#4-step-2-사용자-동의-및-인가-코드-수신)
+5. [Step 3: 토큰 교환 (Token Exchange)](#5-step-3-토큰-교환)
+6. [Step 4: 사용자 정보 조회](#6-step-4-사용자-정보-조회)
+7. [PKCE 구현 방법](#7-pkce-구현-방법)
+8. [Scope 목록](#8-scope-목록)
+9. [에러 처리](#9-에러-처리)
+10. [전체 연동 예제](#10-전체-연동-예제)
+11. [서비스 관리 API](#11-서비스-관리-api)
+12. [FAQ](#12-faq)
+
+---
+
+## 1. 사전 준비 — 서비스 등록
+
+DAuth를 사용하려면 먼저 서비스(클라이언트)를 등록해야 합니다.
+
+### 등록 방법
+
+1. [https://dauth.b1nd.com](https://dauth.b1nd.com) 에 도담도담 계정으로 로그인
+2. 프로필 페이지에서 **서비스 등록** 클릭
+3. 아래 정보를 입력:
+
+| 항목 | 필수 | 설명 |
+|------|------|------|
+| 서비스 이름 | O | 2~100자, 동의 화면에 표시됨 |
+| 설명 | X | 최대 500자 |
+| 웹사이트 URL | X | 서비스 메인 페이지 URL, 최대 512자 |
+| Redirect URI | O | 인가 코드를 수신할 콜백 URL (HTTPS 필수, localhost 예외) |
+| 로고 이미지 | X | 동의 화면에 표시될 서비스 로고 |
+| Scope | O | 최소 1개 이상 선택 |
+
+4. 등록 완료 시 **Client ID**와 **Client Secret**이 발급됩니다.
+
+> **주의:** Client Secret은 등록 시 한 번만 표시됩니다. 반드시 안전한 곳에 보관하세요.
+
+---
+
+## 2. 인증 흐름 개요
+
+```
+┌──────────┐     ①  인가 요청      ┌──────────┐     ②  로그인/동의     ┌──────────┐
+│          │ ─────────────────────> │          │ ─────────────────────> │          │
+│  클라이언트  │                       │  DAuth   │                       │   사용자   │
+│  (서비스)  │ <───────────────────── │  Server  │ <───────────────────── │          │
+│          │     ③ 인가코드 전달      │          │     동의 승인           │          │
+└──────────┘                       └──────────┘                       └──────────┘
+     │                                   │
+     │  ④ 토큰 교환 (code + PKCE)        │
+     │ ─────────────────────────────────>│
+     │                                   │
+     │  ⑤ Access Token 발급              │
+     │ <─────────────────────────────────│
+     │                                   │
+     │  ⑥ 사용자 정보 조회               │
+     │ ─────────────────────────────────>│
+     │                                   │
+     │  ⑦ 사용자 정보 응답               │
+     │ <─────────────────────────────────│
+```
+
+---
+
+## 3. Step 1: 인가 요청
+
+사용자를 DAuth 인가 페이지로 리다이렉트합니다.
+
+### 인가 URL
+
+```
+https://dauth.b1nd.com/authorize
+```
+
+### Query Parameters
+
+| 파라미터 | 필수 | 설명 |
+|---------|------|------|
+| `response_type` | O | 항상 `code` |
+| `client_id` | O | 발급받은 Client ID |
+| `redirect_uri` | O | 등록된 Redirect URI 중 하나 |
+| `scope` | O | 요청할 권한 범위 (공백으로 구분) |
+| `state` | O | CSRF 방지를 위한 랜덤 문자열 |
+| `code_challenge` | O | PKCE code_challenge 값 (SHA256 해시) |
+| `code_challenge_method` | X | `S256` (기본값) 또는 `plain` |
+
+### 요청 예시
+
+```
+https://dauth.b1nd.com/authorize?
+  response_type=code&
+  client_id=abc123&
+  redirect_uri=https://myapp.com/callback&
+  scope=profile:read&
+  state=random_state_string&
+  code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&
+  code_challenge_method=S256
+```
+
+---
+
+## 4. Step 2: 사용자 동의 및 인가 코드 수신
+
+### 동의 화면
+
+사용자가 DAuth에 로그인되어 있지 않으면 로그인 페이지로 이동합니다.
+로그인 후 동의 화면이 표시되며, 서비스가 요청한 scope 목록이 나열됩니다.
+
+- 사용자가 이전에 이미 동의한 경우 자동으로 승인되어 즉시 리다이렉트됩니다.
+- 사용자가 처음 동의하는 경우 Allow/Deny 선택 화면이 표시됩니다.
+
+### 인가 코드 수신
+
+사용자가 동의하면 등록된 `redirect_uri`로 리다이렉트됩니다:
+
+```
+https://myapp.com/callback?code=AUTHORIZATION_CODE&state=random_state_string
+```
+
+**거부한 경우:**
+
+```
+https://myapp.com/callback?error=access_denied&state=random_state_string
+```
+
+> **중요:** 반드시 `state` 값이 요청 시 보낸 값과 일치하는지 검증하세요.
+
+---
+
+## 5. Step 3: 토큰 교환
+
+수신한 인가 코드를 Access Token으로 교환합니다.
+
+### 요청
+
+```http
+POST https://dodam-api.b1nd.com/oauth/token
+Content-Type: application/json
+
+{
+  "grant_type": "authorization_code",
+  "code": "AUTHORIZATION_CODE",
+  "redirect_uri": "https://myapp.com/callback",
+  "client_id": "abc123",
+  "client_secret": "dcs_xxxxxxxxxxxx",
+  "code_verifier": "원본_code_verifier_문자열"
+}
+```
+
+### 응답
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+> **주의:** 토큰 교환은 반드시 서버 사이드에서 수행하세요. Client Secret이 클라이언트 코드에 노출되면 안 됩니다.
+
+---
+
+## 6. Step 4: 사용자 정보 조회
+
+Access Token을 사용하여 사용자 정보를 조회합니다.
+
+### 요청
+
+```http
+GET https://dodam-api.b1nd.com/user/me
+Authorization: Bearer {access_token}
+```
+
+### 응답
+
+```json
+{
+  "publicId": "uuid-string",
+  "username": "hong123",
+  "name": "홍길동",
+  "phone": "010-1234-5678",
+  "profileImage": "https://...",
+  "status": "ACTIVE",
+  "roles": ["STUDENT"],
+  "student": {
+    "grade": 2,
+    "room": 3,
+    "number": 15
+  },
+  "teacher": null,
+  "createdAt": "2024-03-15T10:30:00"
+}
+```
+
+### 사용자 정보 필드
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `publicId` | string | 사용자 고유 ID (UUID) |
+| `username` | string | 로그인 아이디 |
+| `name` | string | 이름 |
+| `phone` | string \| null | 전화번호 |
+| `profileImage` | string \| null | 프로필 이미지 URL |
+| `status` | string | 계정 상태 (ACTIVE 등) |
+| `roles` | string[] | 역할 목록 (STUDENT, TEACHER 등) |
+| `student` | object \| null | 학생 정보 (grade, room, number) |
+| `teacher` | object \| null | 교사 정보 (position) |
+| `createdAt` | string | 계정 생성일 |
+
+---
+
+## 7. PKCE 구현 방법
+
+DAuth는 PKCE(Proof Key for Code Exchange)를 필수로 요구합니다.
+
+### 1) code_verifier 생성
+
+43~128자의 URL-safe 랜덤 문자열을 생성합니다.
+
+```javascript
+function generateCodeVerifier() {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+```
+
+### 2) code_challenge 생성
+
+code_verifier를 SHA256으로 해싱 후 Base64URL 인코딩합니다.
+
+```javascript
+async function generateCodeChallenge(verifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+```
+
+### Python 예시
+
+```python
+import hashlib
+import base64
+import secrets
+
+def generate_code_verifier():
+    return secrets.token_urlsafe(32)
+
+def generate_code_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode()).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
+```
+
+### Java/Kotlin 예시
+
+```kotlin
+import java.security.MessageDigest
+import java.util.Base64
+
+fun generateCodeVerifier(): String {
+    val bytes = ByteArray(32)
+    java.security.SecureRandom().nextBytes(bytes)
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+}
+
+fun generateCodeChallenge(verifier: String): String {
+    val digest = MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray())
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(digest)
+}
+```
+
+---
+
+## 8. Scope 목록
+
+서비스 등록 시 필요한 scope를 선택하며, 인가 요청 시 등록된 scope 범위 내에서 요청할 수 있습니다.
+
+사용 가능한 scope 목록은 아래 API로 조회할 수 있습니다:
+
+```http
+GET https://dodam-api.b1nd.com/oauth/clients/scopes
+```
+
+```json
+[
+  { "scopeKey": "profile:read", "description": "프로필 조회 권한" },
+  ...
+]
+```
+
+여러 scope를 요청할 때는 공백으로 구분합니다:
+
+```
+scope=profile:read student:read
+```
+
+---
+
+## 9. 에러 처리
+
+### 인가 요청 시 발생할 수 있는 에러
+
+| 상황 | 동작 |
+|------|------|
+| 필수 파라미터 누락 | 에러 메시지 표시 (`필수 파라미터가 누락되었습니다`) |
+| 잘못된 client_id | 서버 에러 메시지 반환 |
+| redirect_uri 불일치 | 서버 에러 메시지 반환 |
+| 미등록 scope 요청 | 서버 에러 메시지 반환 |
+| 사용자 미로그인 | DAuth 로그인 페이지로 리다이렉트 |
+
+### 토큰 교환 시 에러
+
+| HTTP 상태 | 원인 |
+|-----------|------|
+| 400 | 잘못된 code, 만료된 code, code_verifier 불일치 |
+| 401 | 잘못된 client_id 또는 client_secret |
+
+---
+
+## 10. 전체 연동 예제
+
+### React (Next.js) 예제
+
+```typescript
+// 1. 인가 요청 시작
+function startLogin() {
+  const codeVerifier = generateCodeVerifier();
+  sessionStorage.setItem('code_verifier', codeVerifier);
+
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('oauth_state', state);
+
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: 'YOUR_CLIENT_ID',
+    redirect_uri: 'https://myapp.com/callback',
+    scope: 'profile:read',
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+  });
+
+  window.location.href = `https://dauth.b1nd.com/authorize?${params}`;
+}
+
+// 2. 콜백 처리 (서버 사이드)
+// pages/api/callback.ts 또는 app/callback/route.ts
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
+  const state = searchParams.get('state');
+
+  // state 검증 (생략)
+
+  // 토큰 교환
+  const tokenRes = await fetch('https://dodam-api.b1nd.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: 'https://myapp.com/callback',
+      client_id: 'YOUR_CLIENT_ID',
+      client_secret: process.env.DAUTH_CLIENT_SECRET,
+      code_verifier: '세션에서_가져온_code_verifier',
+    }),
+  });
+
+  const tokens = await tokenRes.json();
+
+  // 사용자 정보 조회
+  const userRes = await fetch('https://dodam-api.b1nd.com/user/me', {
+    headers: { Authorization: `Bearer ${tokens.access_token}` },
+  });
+
+  const user = await userRes.json();
+  // 사용자 정보로 세션 생성 또는 회원 연동 처리
+}
+```
+
+### Spring Boot (Kotlin) 예제
+
+```kotlin
+@RestController
+@RequestMapping("/auth")
+class AuthController(
+    private val restTemplate: RestTemplate,
+    @Value("\${dauth.client-id}") private val clientId: String,
+    @Value("\${dauth.client-secret}") private val clientSecret: String,
+    @Value("\${dauth.redirect-uri}") private val redirectUri: String,
+) {
+    @GetMapping("/callback")
+    fun callback(
+        @RequestParam code: String,
+        @RequestParam state: String,
+        session: HttpSession,
+    ): ResponseEntity<*> {
+        // state 검증
+        val savedState = session.getAttribute("oauth_state") as? String
+        require(state == savedState) { "Invalid state" }
+
+        val codeVerifier = session.getAttribute("code_verifier") as String
+
+        // 토큰 교환
+        val tokenResponse = restTemplate.postForObject(
+            "https://dodam-api.b1nd.com/oauth/token",
+            mapOf(
+                "grant_type" to "authorization_code",
+                "code" to code,
+                "redirect_uri" to redirectUri,
+                "client_id" to clientId,
+                "client_secret" to clientSecret,
+                "code_verifier" to codeVerifier,
+            ),
+            TokenResponse::class.java,
+        )
+
+        // 사용자 정보 조회
+        val headers = HttpHeaders().apply {
+            setBearerAuth(tokenResponse!!.accessToken)
+        }
+        val userInfo = restTemplate.exchange(
+            "https://dodam-api.b1nd.com/user/me",
+            HttpMethod.GET,
+            HttpEntity<Void>(headers),
+            UserInfo::class.java,
+        ).body
+
+        // 세션 생성 또는 회원 연동
+        return ResponseEntity.ok(userInfo)
+    }
+}
+```
+
+---
+
+## 11. 서비스 관리 API
+
+서비스 등록 후 프로그래밍 방식으로 관리할 수 있는 API입니다.
+
+> **Base URL:** `https://dodam-api.b1nd.com`
+
+### 클라이언트 조회
+
+```http
+GET /oauth/clients/{clientId}
+```
+
+### 클라이언트 수정
+
+```http
+PUT /oauth/clients/{clientId}
+Content-Type: application/json
+
+{
+  "clientSecret": "현재_시크릿",
+  "clientName": "수정된 서비스명",
+  "redirectUris": ["https://myapp.com/callback"],
+  "scopes": ["profile:read"],
+  "description": "서비스 설명",
+  "websiteUrl": "https://myapp.com",
+  "logoUrl": "https://..."
+}
+```
+
+### 클라이언트 삭제 (비활성화)
+
+```http
+DELETE /oauth/clients/{clientId}
+Content-Type: application/json
+
+{
+  "clientSecret": "현재_시크릿"
+}
+```
+
+### 시크릿 재발급
+
+```http
+POST /oauth/clients/{clientId}/secret/reset
+Content-Type: application/json
+
+{
+  "clientSecret": "현재_시크릿"
+}
+```
+
+### 소유권 이전
+
+```http
+POST /oauth/clients/{clientId}/transfer
+Content-Type: application/json
+
+{
+  "clientSecret": "현재_시크릿",
+  "newOwnerPublicId": "대상_사용자_publicId"
+}
+```
+
+---
+
+## 12. FAQ
+
+### Q: Client Secret을 분실했습니다.
+
+DAuth 프로필 페이지에서 Owner Reset 기능을 사용하면 기존 시크릿 없이도 재발급받을 수 있습니다. 단, 서비스 소유자만 가능합니다.
+
+### Q: Redirect URI에 localhost를 사용할 수 있나요?
+
+개발 환경에서는 `http://localhost`를 사용할 수 있습니다. 프로덕션 환경에서는 반드시 HTTPS를 사용하세요.
+
+### Q: code_challenge_method를 plain으로 사용해도 되나요?
+
+보안상 `S256`을 권장합니다. `plain`은 개발/테스트 환경에서만 사용하세요.
+
+### Q: 이전에 동의한 사용자가 다시 접근하면 동의 화면이 표시되나요?
+
+아니요. 이전에 동의한 사용자는 자동으로 승인되어 즉시 redirect_uri로 리다이렉트됩니다.
+
+### Q: 여러 개의 Redirect URI를 등록할 수 있나요?
+
+네. 서비스 등록 시 여러 Redirect URI를 등록할 수 있으며, 인가 요청 시 등록된 URI 중 하나를 지정해야 합니다.
+
+### Q: 토큰을 갱신하려면 어떻게 해야 하나요?
+
+발급받은 `refresh_token`을 사용하여 `/oauth/token` 엔드포인트에 `grant_type=refresh_token`으로 요청하세요.
+
+```http
+POST https://dodam-api.b1nd.com/oauth/token
+Content-Type: application/json
+
+{
+  "grant_type": "refresh_token",
+  "refresh_token": "발급받은_리프레시_토큰",
+  "client_id": "YOUR_CLIENT_ID",
+  "client_secret": "YOUR_CLIENT_SECRET"
+}
+```

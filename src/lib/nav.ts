@@ -18,13 +18,15 @@ export type NavSection = {
 const SECTION_TITLES: Record<string, string> = {
   dds: 'DDS',
   aid: 'App in Dodam',
+  dauth: 'DAuth',
   team: 'Team',
 }
 
 const SECTION_ORDER: Record<string, number> = {
   dds: 0,
   aid: 1,
-  team: 2,
+  dauth: 2,
+  team: 3,
 }
 
 type RawNavItem = NavItem & { section: string }
