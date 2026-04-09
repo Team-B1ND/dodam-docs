@@ -12,7 +12,6 @@ section: "aid"
 |---|---|---|
 | `CAMERA_CAPTURE` | `"CAMERA_CAPTURE"` | 카메라 촬영 |
 | `GPS_GET` | `"GPS_GET"` | GPS 위치 조회 |
-| `OAUTH_GET_TOKEN` | `"OAUTH_GET_TOKEN"` | OAuth 토큰 가져오기 |
 | `FILE_SELECT` | `"FILE_SELECT"` | 파일 선택 |
 | `FILE_SAVE` | `"FILE_SAVE"` | 파일 저장 |
 | `NFC_WRITE` | `"NFC_WRITE"` | NFC 쓰기 |
@@ -70,18 +69,6 @@ useBridgeResponse(Actions.QR_SCAN, async (data) => {
 });
 
 send(Actions.QR_SCAN);
-```
-
-### OAuth 토큰
-
-```tsx
-useBridgeResponse(Actions.OAUTH_GET_TOKEN, async (data) => {
-  const { token } = data as { token: string };
-  setAuthToken(token);
-  return {};
-});
-
-send(Actions.OAUTH_GET_TOKEN);
 ```
 
 ## 타입 레퍼런스
