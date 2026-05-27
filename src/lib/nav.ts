@@ -19,6 +19,7 @@ const SECTION_TITLES: Record<string, string> = {
   dds: 'DDS',
   aid: 'App in Dodam',
   dauth: 'DAuth',
+  api: 'API',
   team: 'Team',
 }
 
@@ -26,7 +27,8 @@ const SECTION_ORDER: Record<string, number> = {
   dds: 0,
   aid: 1,
   dauth: 2,
-  team: 3,
+  api: 3,
+  team: 4,
 }
 
 type RawNavItem = NavItem & { section: string }
