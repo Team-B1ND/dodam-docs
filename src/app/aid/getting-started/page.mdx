@@ -33,6 +33,28 @@ export const App = () => (
 );
 ```
 
+## vite config 설정
+
+`vite.config.ts`의 `base`를 변경해 줍니다.
+
+```ts
+//vite.config.ts
+export default defineConfig({
+  base: './',
+});
+```
+
+## CSS 설정
+
+웹 앱 전역 CSS에 다음과 같은 속성을 추가해 줍니다.
+```css
+html, body {
+    touch-action: pan-y pan-x;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+```
+
 ## 첫 번째 브릿지 호출
 
 웹 앱에서 GPS 위치를 요청하는 예시입니다.
