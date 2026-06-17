@@ -22,6 +22,10 @@ section: "api"
 
     6. [외박자 명단 조회](#6-외박자-명단-조회)
 
+    ### 심야자습
+
+    7. [심야자습 명단 조회](#7-심야자습-명단-조회)
+
 
 ## 1. 개요
 
@@ -140,12 +144,12 @@ Authorization: Basic <Base64로 인코딩한 값>
 
 ## 6. 외박자 명단 조회
 
-오늘을 기준으로 외박을 하는 학생들을 조회하는 api입니다.
+입력한 날짜값을 기준으로 외박을 하는 학생들을 조회하는 api입니다.
 
 | 항목 | 값 |
 |---|---|
 | **Method** | GET |
-| **URL** | /out-sleeping/openapi/serach |
+| **URL** | /out-sleeping/openapi/search |
 
 
 #### Query Parameters
@@ -179,5 +183,46 @@ Authorization: Basic <Base64로 인코딩한 값>
     ],
   },
   "code": "SUCCESS"                                          // 응답 코드 (SUCCESS, OUT_SLEEPING_NOT_FOUND 등)
+}
+```
+
+## 7. 심야자습 명단 조회
+
+입력한 날짜값을 기준으로 승인된 심야자습 명단을 조회합니다.
+
+| 항목 | 값 |
+|---|---|
+| **Method** | GET |
+| **URL** | /nightstudy/openapi/search |
+
+#### Query Parameters
+
+| 이름 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `date` | String | O | 검색할 날짜(yyyy-mm-dd)|
+
+### Response
+
+```json
+{
+  "name": "String?",                  // 프로젝트 심야자습 이름 (PROJECT만 값 있음, PERSONAL이면 항상 null)
+  "description": "String",            // 심야자습 사유/내용
+  "period": "Int",                    // 진행 교시
+  "type": "NightStudyType",           // 심야자습 유형 (PERSONAL / PROJECT enum)
+  "startAt": "LocalDate",             // 시작 날짜 (yyyy-MM-dd)
+  "endAt": "LocalDate",               // 종료 날짜 (yyyy-MM-dd)
+  "status": "NightStudyStatusType",   // 심야자습 승인 상태 (enum)
+  "leader": "Student",                // 대표(신청) 학생 정보
+  "members": "List<Student>"          // 참여 학생 목록
+}
+```
+
+### Student
+```json
+{
+  "name": String,                     // 이름
+  "grade": Int,                       // 학년
+  "room": Int,                        // 반
+  "number": Int,                      // 번호
 }
 ```
