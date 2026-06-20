@@ -188,7 +188,7 @@ Authorization: Basic <Base64로 인코딩한 값>
 
 ## 7. 심야자습 명단 조회
 
-입력한 날짜값을 기준으로 승인된 심야자습 명단을 조회합니다.
+입력한 유형(type)과 날짜(date)를 기준으로 승인된 심야자습 명단을 조회합니다.
 
 | 항목 | 값 |
 |---|---|
@@ -199,6 +199,7 @@ Authorization: Basic <Base64로 인코딩한 값>
 
 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|
+| `type` | String | O | 심야자습 유형 (PERSONAL / PROJECT) |
 | `date` | String | O | 검색할 날짜(yyyy-mm-dd)|
 
 ### Response
@@ -211,7 +212,7 @@ Authorization: Basic <Base64로 인코딩한 값>
   "type": "NightStudyType",           // 심야자습 유형 (PERSONAL / PROJECT enum)
   "startAt": "LocalDate",             // 시작 날짜 (yyyy-MM-dd)
   "endAt": "LocalDate",               // 종료 날짜 (yyyy-MM-dd)
-  "status": "NightStudyStatusType",   // 심야자습 승인 상태 (enum)
+  "status": "NightStudyStatusType",   // 심야자습 승인 상태 (ALLOWED / PENDING / REJECTED enum)
   "leader": "Student",                // 대표(신청) 학생 정보
   "members": "List<Student>"          // 참여 학생 목록
 }
@@ -224,5 +225,6 @@ Authorization: Basic <Base64로 인코딩한 값>
   "grade": Int,                       // 학년
   "room": Int,                        // 반
   "number": Int,                      // 번호
+  "attended": Boolean,                // 해당 날짜 출석 여부
 }
 ```
