@@ -199,24 +199,27 @@ Authorization: Basic <Base64로 인코딩한 값>
 
 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|
-| `type` | String | O | 심야자습 유형 (PERSONAL / PROJECT) |
+| `type` | String | O | 심야자습 유형 (PERSONAL / PROJECT / AUTO) |
 | `date` | String | O | 검색할 날짜(yyyy-mm-dd)|
 
 ### Response
 
 ```json
 {
-  "name": "String?",                  // 프로젝트 심야자습 이름 (PROJECT만 값 있음, PERSONAL이면 항상 null)
-  "description": "String",            // 심야자습 사유/내용
-  "period": "Int",                    // 진행 교시
-  "type": "NightStudyType",           // 심야자습 유형 (PERSONAL / PROJECT enum)
-  "startAt": "LocalDate",             // 시작 날짜 (yyyy-MM-dd)
-  "endAt": "LocalDate",               // 종료 날짜 (yyyy-MM-dd)
-  "status": "NightStudyStatusType",   // 심야자습 승인 상태 (ALLOWED / PENDING / REJECTED enum)
-  "leader": "Student",                // 대표(신청) 학생 정보
-  "members": "List<Student>"          // 참여 학생 목록
+  [
+    "name": "String?",                  // 프로젝트 심야자습 이름 (PROJECT만 값 있음, PERSONAL이면 항상 null)
+    "description": "String",            // 심야자습 사유/내용
+    "period": "Int",                    // 진행 교시
+    "type": "NightStudyType",           // 심야자습 유형 (PERSONAL / PROJECT / AUTO)
+    "startAt": "LocalDate",             // 시작 날짜 (yyyy-MM-dd)
+    "endAt": "LocalDate",               // 종료 날짜 (yyyy-MM-dd)
+    "status": "NightStudyStatusType",   // 심야자습 승인 상태 (ALLOWED / PENDING / REJECTED enum)
+    "leader": "Student",                // 대표(신청) 학생 정보
+    "members": "List<Student>"          // 참여 학생 목록
+  ]
 }
 ```
+`**※ AUTO는 프로젝트 심야자습 신청이 승인될 때 출석을 위한 자동 심야자습 신청이며 이는 학생이 선택적으로 참가할 수 있습니다.**`
 
 ### Student
 ```json
@@ -225,6 +228,31 @@ Authorization: Basic <Base64로 인코딩한 값>
   "grade": Int,                       // 학년
   "room": Int,                        // 반
   "number": Int,                      // 번호
-  "attended": Boolean,                // 해당 날짜 출석 여부
+  "attended": Attendance,             // 해당 날짜 출석 여부
+  "studyRoom": StudyRoom              // 해당 날짜의 실 위치
+}
+```
+
+### Attendance
+```json
+{
+  "period1": NightStudyAttendanceStatus,      // 심야자습 출석 유형 (ATTENDANCE / ABSENT / NOT_APPLIED)
+  "period2": NightStudyAttendanceStatus       // 심야자습 출석 유형 (ATTENDANCE / ABSENT / NOT_APPLIED)
+}
+```
+
+### StudyRoom
+```json
+{
+  "period1": Room?,
+  "period2": Room?
+}
+```
+
+### Room
+```json
+{
+  name: String,
+  floor: Int
 }
 ```
