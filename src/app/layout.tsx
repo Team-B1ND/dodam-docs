@@ -8,6 +8,7 @@ import { ThemeSetter, DdsRegistry } from "@b1nd/dodam-design-system/next";
 import { OverlayProvider } from "@b1nd/dodam-design-system/components";
 import { colors } from "@b1nd/dodam-design-system/colors";
 import { getNav } from "@/lib/nav";
+import { GlobalErrorToastProvider } from "@/shared/ui/GlobalErrorToastProvider";
 
 export const metadata: Metadata = {
   title: "B1ND Docs",
@@ -34,7 +35,9 @@ export default function RootLayout({
           <main className="pt-14 md:ml-56 min-w-0">
             <div className="max-w-4xl mx-auto px-6 md:px-12 pt-8 md:pt-12">
               <div className="min-h-body">
-                <DdsRegistry>{children}</DdsRegistry>
+                <DdsRegistry>
+                  <GlobalErrorToastProvider>{children}</GlobalErrorToastProvider>
+                </DdsRegistry>
               </div>
               <Footer />
             </div>
