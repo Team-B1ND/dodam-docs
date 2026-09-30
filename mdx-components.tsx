@@ -21,7 +21,7 @@ function getCodeFromChildren(children: ReactNode): { code: string; language: str
   return null;
 }
 
-const components: MDXComponents = {
+export const mdxComponents: MDXComponents = {
   wrapper: ({ children }) => (
     <div className="text-text-secondary leading-7 [&>*:first-child]:mt-0">
       {children}
@@ -147,5 +147,5 @@ const components: MDXComponents = {
 };
 
 export function useMDXComponents(): MDXComponents {
-  return components;
+  return mdxComponents;
 }

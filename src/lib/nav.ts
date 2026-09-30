@@ -21,6 +21,7 @@ const SECTION_TITLES: Record<string, string> = {
   dauth: 'DAuth',
   api: 'API',
   team: 'Team',
+  policy: '서비스 정책',
 }
 
 const SECTION_ORDER: Record<string, number> = {
@@ -29,6 +30,7 @@ const SECTION_ORDER: Record<string, number> = {
   dauth: 2,
   api: 3,
   team: 4,
+  policy: 5,
 }
 
 type RawNavItem = NavItem & { section: string }
@@ -70,6 +72,15 @@ function scanDir(dir: string, appRoot: string): RawNavItem[] {
 export function getNav(): NavSection[] {
   const appRoot = path.join(process.cwd(), 'src', 'app')
   const items = scanDir(appRoot, appRoot)
+
+  if (process.env.NOTION_API_KEY && process.env.NOTION_PAGE_ID) {
+    items.push({
+      title: '개인정보 처리방침',
+      href: '/privacy-policy',
+      order: 1,
+      section: 'policy',
+    })
+  }
 
   const sectionMap = new Map<string, NavItem[]>()
 
